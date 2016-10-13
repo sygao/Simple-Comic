@@ -62,6 +62,8 @@
 		55C374611BD9F03B006385B6 /* UniversalDetector.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 55C374571BD9EAA1006385B6 /* UniversalDetector.framework */; };
 		55C7D78C1C4C0401005F40C8 /* TSSTCircularImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55C7D78B1C4C0401005F40C8 /* TSSTCircularImageView.swift */; };
 		55C7D7901C4C06FF005F40C8 /* TSSTInfoWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55C7D78F1C4C06FF005F40C8 /* TSSTInfoWindow.swift */; };
+		55FFF1B51DB00A360080B059 /* TSSTPage+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55FFF1B31DB00A360080B059 /* TSSTPage+CoreDataClass.swift */; };
+		55FFF1B61DB00A360080B059 /* TSSTPage+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55FFF1B41DB00A360080B059 /* TSSTPage+CoreDataProperties.swift */; };
 		77C8280E06725ACE000B614F /* SimpleComicAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 77C8280C06725ACE000B614F /* SimpleComicAppDelegate.m */; };
 		8D11072D0486CEB800E47090 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 29B97316FDCFA39411CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
@@ -373,6 +375,8 @@
 		55C374511BD9EAA1006385B6 /* UniversalDetector.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = UniversalDetector.xcodeproj; path = Vendor/UniversalDetector/UniversalDetector.xcodeproj; sourceTree = "<group>"; };
 		55C7D78B1C4C0401005F40C8 /* TSSTCircularImageView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TSSTCircularImageView.swift; sourceTree = "<group>"; };
 		55C7D78F1C4C06FF005F40C8 /* TSSTInfoWindow.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TSSTInfoWindow.swift; sourceTree = "<group>"; };
+		55FFF1B31DB00A360080B059 /* TSSTPage+CoreDataClass.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "TSSTPage+CoreDataClass.swift"; sourceTree = "<group>"; };
+		55FFF1B41DB00A360080B059 /* TSSTPage+CoreDataProperties.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "TSSTPage+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		64777B8B1A4212E40064A356 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		64777B8C1A4213100064A356 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/TSSTSessionWindow.strings"; sourceTree = "<group>"; };
 		64777B8D1A4213150064A356 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/MainMenu.strings"; sourceTree = "<group>"; };
@@ -519,6 +523,8 @@
 		28FA4DD50B8A6F3B00496668 /* Managed Objects */ = {
 			isa = PBXGroup;
 			children = (
+				55FFF1B31DB00A360080B059 /* TSSTPage+CoreDataClass.swift */,
+				55FFF1B41DB00A360080B059 /* TSSTPage+CoreDataProperties.swift */,
 				28F5A5F00B7E0F8B003530FB /* TSSTPage.h */,
 				2895F9D80B67D224008683C6 /* TSSTPage.m */,
 				281954E70C1201E5001F5E95 /* TSSTManagedGroup.h */,
@@ -1007,11 +1013,13 @@
 				284D381B101249BE00A37AB2 /* DTToolbarItems.m in Sources */,
 				5526278F1BDEE9BC005AAF63 /* TSSTBezelWindow.swift in Sources */,
 				5538C2021C0E1A7C00744130 /* TSSTInfoView.swift in Sources */,
+				55FFF1B61DB00A360080B059 /* TSSTPage+CoreDataProperties.swift in Sources */,
 				28B34A731013779B006C551C /* DTSessionWindow.m in Sources */,
 				5526278D1BDEBF29005AAF63 /* TSSTImageView.swift in Sources */,
 				284741461071B4820033BD88 /* TSSTGradientView.m in Sources */,
 				287D0C1210F0595900207768 /* Sessions_DataModel.xcdatamodel in Sources */,
 				28A266301285C73200ED6391 /* DTPreferencesController.m in Sources */,
+				55FFF1B51DB00A360080B059 /* TSSTPage+CoreDataClass.swift in Sources */,
 				559EF3EB1BDD473B00FAAA0A /* TSSTThumbnailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
