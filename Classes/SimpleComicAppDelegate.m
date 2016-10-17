@@ -37,6 +37,7 @@
 #import "TSSTCustomValueTransformers.h"
 #import "DTPreferencesController.h"
 #import "Simple_Comic-Swift.h"
+#import "TSSTManagedSession+CoreDataProperties.h"
 
 
 @interface SimpleComicAppDelegate () <XADArchiveDelegate>
@@ -333,7 +334,7 @@ static NSArray<NSNumber*> * allAvailableStringEncodings(void)
 		}
 	}
 	
-    int reply = NSTerminateNow;
+    NSApplicationTerminateReply reply = NSTerminateNow;
 	/* TODO: some day I really need to add the fallback error handling */
     if(![self saveContext])
     {
@@ -466,8 +467,7 @@ static NSArray<NSNumber*> * allAvailableStringEncodings(void)
 
 - (NSManagedObjectModel *)managedObjectModel
 {
-    if (managedObjectModel != nil)
-	{
+    if (managedObjectModel != nil) {
         return managedObjectModel;
     }
 	
@@ -550,7 +550,7 @@ static NSArray<NSNumber*> * allAvailableStringEncodings(void)
 
 
 
-/*  Method creates an application support directory for Simpl Comic if one
+/**  Method creates an application support directory for Simpl Comic if one
     is does not already exist.
     @return The absolute path to Simple Comic's application support directory 
 	as a string.  */
@@ -560,8 +560,6 @@ static NSArray<NSNumber*> * allAvailableStringEncodings(void)
     NSString * basePath = ([paths count] > 0) ? paths[0] : NSTemporaryDirectory();
     return [basePath stringByAppendingPathComponent: @"Simple Comic"];
 }
-
-
 
 - (BOOL)saveContext
 {
@@ -596,25 +594,19 @@ static NSArray<NSNumber*> * allAvailableStringEncodings(void)
     return saved;
 }
 
-
-
 #pragma mark -
 #pragma mark Session Managment
-
-
 
 - (void)windowForSession:(TSSTManagedSession *)settings
 {
 	NSArray * existingSessions = [sessions valueForKey: @"session"];
-    if([[settings valueForKey: @"images"] count] > 0 && ![existingSessions containsObject: settings])
+    if([settings.images count] > 0 && ![existingSessions containsObject: settings])
     {
         TSSTSessionWindowController * comicWindow = [[TSSTSessionWindowController alloc] initWithSession: settings];
         [sessions addObject: comicWindow];
         [comicWindow showWindow: self];
     }
 }
-
-
 
 - (void)endSession:(NSNotification *)notification
 {
@@ -623,8 +615,6 @@ static NSArray<NSNumber*> * allAvailableStringEncodings(void)
 	[sessions removeObject: controller];
 	[[self managedObjectContext] deleteObject: sessionToRemove];
 }
-
-
 
 - (void)sessionRelaunch
 {
@@ -635,7 +625,7 @@ static NSArray<NSNumber*> * allAvailableStringEncodings(void)
 	NSArray * managedSessions = [[self managedObjectContext] executeFetchRequest: sessionRequest error: &fetchError];
 	for(session in managedSessions)
 	{
-		if([[session valueForKey: @"groups"] count] <= 0)
+		if([session.groups count] <= 0)
 		{
 			[[self managedObjectContext] deleteObject: session];
 		}
@@ -647,21 +637,19 @@ static NSArray<NSNumber*> * allAvailableStringEncodings(void)
 	}
 }
 
-
 - (TSSTManagedSession *)newSessionWithFiles:(NSArray<NSString*> *)files
 {
     TSSTManagedSession * sessionDescription = [NSEntityDescription insertNewObjectForEntityForName: @"Session" inManagedObjectContext: [self managedObjectContext]];
     NSUserDefaults * defaults = [NSUserDefaults standardUserDefaults];
-    
-    [sessionDescription setValue: [defaults valueForKey: TSSTPageScaleOptions] forKey: TSSTPageScaleOptions];
-    [sessionDescription setValue: [defaults valueForKey: TSSTPageOrder] forKey: TSSTPageOrder];
-    [sessionDescription setValue: [defaults valueForKey: TSSTTwoPageSpread] forKey: TSSTTwoPageSpread];
+	
+	sessionDescription.scaleOptions = [defaults valueForKey: TSSTPageScaleOptions];
+	sessionDescription.pageOrder = [defaults valueForKey: TSSTPageOrder];
+	sessionDescription.twoPageSpread = [defaults valueForKey: TSSTTwoPageSpread];
 	
     [self addFiles: files toSession: sessionDescription];
 
 	return sessionDescription;
 }
-
 
 
 - (void)addFiles:(NSArray<NSString*> *)paths toSession:(TSSTManagedSession *)session
@@ -670,8 +658,8 @@ static NSArray<NSNumber*> * allAvailableStringEncodings(void)
 //	[[self managedObjectContext] lock];
 	NSFileManager * fileManager = [NSFileManager defaultManager];
 	BOOL isDirectory;
-    NSManagedObject * fileDescription;
-	NSMutableSet * pageSet = [[NSMutableSet alloc] initWithSet: [session valueForKey: @"images"]];
+    TSSTPage * fileDescription;
+	NSMutableSet<TSSTPage *> * pageSet = [session.images mutableCopy];
 	for (NSString *path in paths)
 	{
 		fileDescription = nil;
@@ -738,10 +726,8 @@ static NSArray<NSNumber*> * allAvailableStringEncodings(void)
 //	[[self managedObjectContext] release];
 }
 
-
 #pragma mark -
 #pragma mark Actions
-
 
 // Launches open modal.
 - (IBAction)addPages:(id)sender
@@ -773,23 +759,17 @@ static NSArray<NSNumber*> * allAvailableStringEncodings(void)
 	}
 }
 
-
-
 /*  Kills the password and encoding modals if the OK button was  clicked. */
 - (IBAction)modalOK:(id)sender
 {
     [NSApp stopModalWithCode: NSModalResponseOK];
 }
 
-
-
 /*  Kills the password and encoding modals if the Cancel button was clicked. */
 - (IBAction)modalCancel:(id)sender
 {
     [NSApp stopModalWithCode: NSModalResponseCancel];
 }
-
-
 
 - (IBAction)openPreferences:(id)sender
 {
@@ -800,19 +780,12 @@ static NSArray<NSNumber*> * allAvailableStringEncodings(void)
     [preferences showWindow: self];
 }
 
-
-
-
 #pragma mark - Archive Encoding Handling
-
-
 
 - (IBAction)testEncodingMenu:(id)sender
 {
 	[NSApp runModalForWindow: encodingPanel];
 }
-
-
 
 - (void)generateEncodingMenu
 {
@@ -838,8 +811,6 @@ static NSArray<NSNumber*> * allAvailableStringEncodings(void)
     [encodingPopup bind: @"selectedIndex" toObject: self withKeyPath: @"encodingSelection" options: nil];
 }
 
-
-
 - (void)updateEncodingMenuTestedAgainst:(NSData *)data
 {
     for (NSMenuItem * encodingMenuItem in [[encodingPopup menu] itemArray]) {
@@ -853,8 +824,6 @@ static NSArray<NSNumber*> * allAvailableStringEncodings(void)
     }
 }
 
-
-
 - (NSString*)passwordForArchiveWithPath:(NSString*)filename
 {
     NSString* password = nil;
@@ -866,8 +835,6 @@ static NSArray<NSNumber*> * allAvailableStringEncodings(void)
     [passwordPanel close];
     return password;
 }
-
-
 
 -(NSStringEncoding)archive:(XADArchive *)archive 
 		   encodingForData:(NSData *)data 
@@ -910,8 +877,6 @@ static NSArray<NSNumber*> * allAvailableStringEncodings(void)
     return guess;
 }
 
-
-
 - (IBAction)testEncoding:(id)sender
 {
     NSMenuItem * encodingMenuItem = [[encodingPopup menu] itemAtIndex: encodingSelection];
@@ -925,20 +890,14 @@ static NSArray<NSNumber*> * allAvailableStringEncodings(void)
     [encodingTestField setStringValue: testText];
 }
 
-
-
 - (IBAction)actionStub:(id)sender
 {
     
 }
-
 
 - (IBAction)endLaunchPanel:(id)sender
 {
 	[launchPanel close];
 }
 
-
 @end
-
-

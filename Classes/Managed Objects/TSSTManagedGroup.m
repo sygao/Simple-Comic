@@ -8,18 +8,20 @@
 
 
 #import "TSSTManagedGroup.h"
+#import "TSSTManagedGroup+CoreDataProperties.h"
 #import "SimpleComicAppDelegate.h"
 #import <XADMaster/XADArchive.h>
 #import <Quartz/Quartz.h>
 #import "TSSTImageUtilities.h"
 #import "TSSTPage.h"
+#import "TSSTPage+CoreDataProperties.h"
 
 @interface TSSTManagedArchive () <XADArchiveDelegate>
+-(void)archiveNeedsPassword:(XADArchive *)archive;
 
 @end
 
 @implementation TSSTManagedGroup
-
 
 - (void)awakeFromInsert
 {
@@ -28,36 +30,30 @@
     instance = nil;
 }
 
-
 - (void)awakeFromFetch
 {
 	[super awakeFromFetch];
     groupLock = [NSLock new];
     instance = nil;
-
 }
-
 
 - (void)willTurnIntoFault
 {
 	NSError * error = nil;
-	if([[self valueForKey: @"nested"] boolValue])
+	if([self.nested boolValue])
 	{
-		if(![[NSFileManager defaultManager] removeItemAtPath: [self valueForKey: @"path"] error: &error])
+		if(![[NSFileManager defaultManager] removeItemAtPath: self.path error: &error])
 		{
 			NSLog(@"%@",[error localizedDescription]);
 		}
 	}
 }
 
-
 - (void)didTurnIntoFault
 {	
 	instance = nil;
 	groupLock = nil;
 }
-
-
 
 - (void)setPath:(NSString *)newPath
 {
@@ -71,7 +67,7 @@
         bookmarkData = nil;
         [NSApp presentError: urlError];
     }
-	[self setValue: bookmarkData forKey: @"pathData"];
+    self.pathData = bookmarkData;
 }
 
 
@@ -80,7 +76,7 @@
 {
     NSError * urlError = nil;
     BOOL stale = NO;
-    NSURL * fileURL = [NSURL URLByResolvingBookmarkData: [self valueForKey: @"pathData"]
+    NSURL * fileURL = [NSURL URLByResolvingBookmarkData: self.pathData
                                                 options: NSURLBookmarkResolutionWithoutUI
                                           relativeToURL: nil
                                     bookmarkDataIsStale: &stale
@@ -102,13 +98,10 @@
 }
 
 
-
 - (id)instance
 {
     return nil;
 }
-
-
 
 - (NSData *)dataForPageIndex:(NSInteger)index
 {
@@ -121,12 +114,10 @@
     return nil;
 }
 
-
 - (NSManagedObject *)topLevelGroup
 {
 	return self;
 }
-
 
 /**
  Goes through various files like pdfs, images, text files
@@ -134,11 +125,9 @@
  to the Core Data for the managedObjectContext
  with the info needed to deal with the files.
  */
-
-
 - (void)nestedFolderContents
 {
-	NSString * folderPath = [self valueForKey: @"path"];
+	NSString * folderPath = self.path;
 	NSFileManager * fileManager = [NSFileManager defaultManager];
 	NSManagedObject * nestedDescription;
 	NSError * error = nil;
@@ -205,16 +194,15 @@
 */
 - (NSSet *)nestedImages
 {
-	NSMutableSet * allImages = [[NSMutableSet alloc] initWithSet: [self valueForKey: @"images"]];
-	NSSet * groups = [self valueForKey: @"groups"];
-	for(NSManagedObject * group in groups)
+	NSMutableSet * allImages = [self.images mutableCopy];
+	NSSet * groups = self.groups;
+	for(TSSTManagedGroup * group in groups)
 	{
-		[allImages unionSet: [group valueForKey: @"nestedImages"]];
+		[allImages unionSet: group.nestedImages];
 	}
 	
 	return allImages;
 }
-
 
 @end
 
@@ -250,19 +238,18 @@
 	return extensions;
 }
 
-
 - (void)willTurnIntoFault
 {
 	NSError * error;
-	if([[self valueForKey: @"nested"] boolValue])
+	if([self.nested boolValue])
 	{
-		if(![[NSFileManager defaultManager] removeItemAtPath: [self valueForKey: @"path"] error: &error])
+		if(![[NSFileManager defaultManager] removeItemAtPath: self.path error: &error])
 		{
 			NSLog(@"%@",[error localizedDescription]);
 		}
 	}
 	
-	NSString * solid  = [self valueForKey: @"solidDirectory"];
+	NSString * solid  = self.solidDirectory;
 	if(solid)
 	{
 		if(![[NSFileManager defaultManager] removeItemAtPath: solid error: &error])
@@ -272,22 +259,20 @@
 	}
 }
 
-
-
 - (id)instance
 {
     if (!instance)
     {
         NSFileManager * manager = [NSFileManager defaultManager];
-        if([manager fileExistsAtPath: [self valueForKey: @"path"]])
+        if([manager fileExistsAtPath: self.path])
         {
-            instance = [[XADArchive alloc] initWithFile: [self valueForKey: @"path"] delegate: self error:NULL];
+            instance = [[XADArchive alloc] initWithFile: self.path delegate: self error:NULL];
 
             // Set the archive delegate so that password and encoding queries can have a modal pop up.
 			
-            if([self valueForKey: @"password"])
+            if(self.password)
             {
-                [instance setPassword: [self valueForKey: @"password"]];
+                [instance setPassword: self.password];
             }
         }
     }
@@ -295,11 +280,9 @@
     return instance;
 }
 
-
-
 - (NSData *)dataForPageIndex:(NSInteger)index
 {
-	NSString * solidDirectory = [self valueForKey: @"solidDirectory"];
+	NSString * solidDirectory = self.solidDirectory;
 	NSData * imageData;
 	if(!solidDirectory)
 	{
@@ -330,10 +313,8 @@
 
 - (NSData *)dataForPageName:(NSString *)name
 {
-    
     return nil;
 }
-
 
 - (NSManagedObject *)topLevelGroup
 {
@@ -349,11 +330,9 @@
 	return parentGroup;
 }
 
-
-
 - (void)nestedArchiveContents
 {
-    XADArchive * imageArchive = [self valueForKey: @"instance"];
+    XADArchive * imageArchive = self.instance;
     
     NSFileManager * fileManager = [NSFileManager defaultManager];
 	NSData * fileData;
@@ -368,7 +347,7 @@
 			archivePath = [NSTemporaryDirectory() stringByAppendingPathComponent: archivePath];
 			++collision;
 		} while (![fileManager createDirectoryAtPath: archivePath withIntermediateDirectories: YES attributes: nil error: &error]);
-		[self setValue: archivePath forKey: @"solidDirectory"];
+		self.solidDirectory = archivePath;
 	}
     
     for (counter = 0; counter < archivedFilesCount; ++counter)
@@ -389,8 +368,8 @@
             {
                 fileData = [imageArchive contentsOfEntry: counter];
                 nestedDescription = [NSEntityDescription insertNewObjectForEntityForName: @"Archive" inManagedObjectContext: [self managedObjectContext]];
-                [nestedDescription setValue: fileName forKey: @"name"];
-                [nestedDescription setValue: @YES forKey: @"nested"];
+				nestedDescription.name = fileName;
+				nestedDescription.nested = @YES;
 				
                 collision = 0;
                 do {
@@ -405,7 +384,7 @@
                                                                 error: NULL];
                 [[NSFileManager defaultManager] createFileAtPath: archivePath contents: fileData attributes: nil];
 
-                [nestedDescription setValue: archivePath forKey: @"path"];
+				nestedDescription.path = archivePath;
                 [(TSSTManagedArchive *)nestedDescription nestedArchiveContents];
             }
 			else if([[TSSTPage textExtensions] containsObject: extension])
@@ -429,14 +408,14 @@
 				fileData = [imageArchive contentsOfEntry: counter];
 				[fileData writeToFile: archivePath atomically: YES];
 
-                [nestedDescription setValue: archivePath forKey: @"path"];
-                [nestedDescription setValue: @YES forKey: @"nested"];
+				nestedDescription.path = archivePath;
+				nestedDescription.nested = @YES;
 				[(TSSTManagedPDF *)nestedDescription pdfContents];
             }
 			
 			if(nestedDescription)
 			{
-				[nestedDescription setValue: self forKey: @"group"];
+                nestedDescription.group = self;
 			}
         }
     }
@@ -445,8 +424,8 @@
 
 - (BOOL)quicklookCompatible
 {	
-	NSString * extension = [[[self valueForKey: @"name"] pathExtension] lowercaseString];
-	return [[TSSTManagedArchive quicklookExtensions] containsObject: extension];
+	NSString * extension = [[self.name pathExtension] lowercaseString];
+	return [TSSTManagedArchive.quicklookExtensions containsObject: extension];
 }
 
 
@@ -456,38 +435,34 @@
  archive.  Brings a password dialog forward. */
 -(void)archiveNeedsPassword:(XADArchive *)archive
 {
-    NSString * password = [self valueForKey: @"password"];
+    NSString * password = self.password;
     
     if(password)
     {
-        [archive setPassword: password];
+        archive.password = password;
         return;
     }
     
-    password = [(SimpleComicAppDelegate*)[NSApp delegate] passwordForArchiveWithPath: [self valueForKey: @"path"]];
-    [archive setPassword: password];
+    password = [(SimpleComicAppDelegate*)[NSApp delegate] passwordForArchiveWithPath: self.path];
+    archive.password = password;
     
-    [self setValue: password forKey: @"password"];
+    self.password = password;
 }
-
 
 @end
 
 
 @implementation TSSTManagedPDF
 
-
 - (id)instance
 {
     if (!instance)
     {
-        instance = [[PDFDocument alloc] initWithURL: [NSURL fileURLWithPath: [self valueForKey: @"path"]]];
+        instance = [[PDFDocument alloc] initWithURL: [NSURL fileURLWithPath: self.path]];
     }
 	
     return instance;
 }
-
-
 
 - (NSData *)dataForPageIndex:(NSInteger)index
 {	
@@ -521,23 +496,21 @@
     return nil;
 }
 
-
-/*  Creates an image managedobject for every "page" in a pdf. */
+/**  Creates an image managedobject for every "page" in a pdf. */
 - (void)pdfContents
 {
     NSPDFImageRep * rep = [self instance];
     TSSTPage * imageDescription;
-    NSMutableSet * pageSet = [NSMutableSet set];
+    NSMutableSet<TSSTPage*> * pageSet = [NSMutableSet set];
     NSInteger imageCount = [rep pageCount];
-    int pageNumber;
-    for (pageNumber = 0; pageNumber < imageCount; ++pageNumber)
+    for (NSInteger pageNumber = 0; pageNumber < imageCount; ++pageNumber)
     {
         imageDescription = [NSEntityDescription insertNewObjectForEntityForName: @"Image" inManagedObjectContext: [self managedObjectContext]];
-        [imageDescription setValue: [NSString stringWithFormat: @"%i", pageNumber + 1] forKey: @"imagePath"];
-        [imageDescription setValue: @(pageNumber) forKey: @"index"];
+		imageDescription.imagePath = [NSString stringWithFormat: @"%li", (long)(pageNumber + 1)];
+		imageDescription.index = @(pageNumber);
         [pageSet addObject: imageDescription];
     }
-	[self setValue: pageSet forKey: @"images"];
+    self.images = pageSet;
 }
 
 @end
