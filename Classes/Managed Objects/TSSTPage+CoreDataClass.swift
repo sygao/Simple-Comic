@@ -60,7 +60,7 @@ public class TSSTPage: NSManagedObject {
 		var aImageTypes = Set<String>(minimumCapacity: imageTypes.count * 2)
 		for uti in imageTypes {
 			if let fileExts = UTTypeCopyAllTagsWithClass(uti as NSString, kUTTagClassFilenameExtension)?.takeRetainedValue() as NSArray? as? [String] {
-				aImageTypes.formIntersection(fileExts)
+				aImageTypes.formUnion(fileExts)
 			}
 		}
 		
@@ -105,33 +105,35 @@ public class TSSTPage: NSManagedObject {
 		aspectRatio = aspect as NSNumber
 	}
 	
+	var thumbnail: NSImage? {
+		var thumbnail: NSImage?
+		if let thumbnailData = self.thumbnailData as Data? {
+			thumbnail = NSImage(data: thumbnailData)
+		} else if let thumbData = prepThumbnail() {
+			self.thumbnailData = thumbData as NSData
+			thumbnail = NSImage(data: thumbData)
+		}
+		
+		return thumbnail
+	}
+	
 	func prepThumbnail() -> Data? {
 		thumbLock?.lock()
-		
-		/*
-[thumbLock lock];
-NSImage * managedImage = [self pageImage];
-NSData * thumbnailData = nil;
-NSSize pixelSize = [managedImage size];
-if(managedImage)
-{
-pixelSize = sizeConstrainedByDimension(pixelSize, 256);
-NSImage * temp = [[NSImage alloc] initWithSize: pixelSize];
-[temp lockFocus];
-[[NSGraphicsContext currentContext] setImageInterpolation: NSImageInterpolationHigh];
-[managedImage drawInRect: NSMakeRect(0, 0, pixelSize.width, pixelSize.height)
-fromRect: NSZeroRect
-operation: NSCompositeSourceOver
-fraction: 1.0];
-[temp unlockFocus];
-thumbnailData = [temp TIFFRepresentation];
-}
-[thumbLock unlock];
+		let managedImage = pageImage
+		var thumbData: Data? = nil
+		var pixelSize: NSSize = managedImage?.size ?? .zero
+		if let managedImage = managedImage {
+			pixelSize = constrainSize(pixelSize, byDimension: 256)
+			let temp = NSImage(size: pixelSize)
+			temp.lockFocus()
+			NSGraphicsContext.current()?.imageInterpolation = .high
+			managedImage.draw(in: NSRect(origin: .zero, size: pixelSize), from: .zero, operation: .sourceOver, fraction: 1)
+			temp.unlockFocus()
+			thumbData = temp.tiffRepresentation
+		}
+		thumbLock?.unlock()
 
-return thumbnailData;
-*/
-
-		return nil
+		return thumbData
 	}
 
 	public override func awakeFromInsert() {
@@ -151,31 +153,6 @@ return thumbnailData;
 		loaderLock = nil
 		thumbLock = nil
 	}
-
-/*
-open class var imageTypes: [String] { get }
-
-open class var imageExtensions: [String] { get }
-
-open class var textExtensions: [String] { get }
-
-
-open var name: String { get }
-
-//- (NSString *)deconflictionName;
-
-open var shouldDisplayAlone: Bool { get }
-
-open func setOwnSizeInfoWith(_ imageData: Data)
-
-@NSCopying open var thumbnail: NSImage { get }
-
-open func prepThumbnail() -> Data?
-
-@NSCopying open var textPage: NSImage { get }
-
-@NSCopying open var pageImage: NSImage { get }
-*/
 	
 	var pageData: Data? {
 		var imageData: Data? = nil
@@ -202,95 +179,64 @@ open func prepThumbnail() -> Data?
 		
 		let encodingDetector = UniversalDetector()
 		encodingDetector.analyze(textData)
-		let text = String(data: textData, encoding: String.Encoding(rawValue: encodingDetector.encoding))
+		guard let text = String(data: textData, encoding: String.Encoding(rawValue: encodingDetector.encoding)) else {
+			return NSImage()
+		}
+		var pageRect = NSRect.zero
+		var aindex = text.startIndex
+		let textLength = text.endIndex
+		while aindex < textLength {
+			let bRange: Range<String.Index> = aindex ..< text.index(after: aindex)
+			let lineRange = text.lineRange(for: bRange)
+			aindex = lineRange.upperBound
+			let singleLine = text[lineRange]
+			let lineRect = (singleLine as NSString).boundingRect(with: NSSize(width: 800, height: 800), options: .usesLineFragmentOrigin, attributes: TSSTInfoPageAttributes)
+			if lineRect.width > pageRect.width {
+				pageRect.size.width = lineRect.size.width
+			}
+			pageRect.size.height += lineRect.height - 19
+		}
+		
+		pageRect.size.width += 10;
+		pageRect.size.height += 10;
+		pageRect.size.height = max(pageRect.height, 500)
+		
+		let textImage = NSImage(size: pageRect.size)
+		
+		textImage.lockFocus()
+		NSColor.white.set()
+		NSRectFill(pageRect)
+		(text as NSString).draw(with: pageRect.insetBy(dx: 5, dy: 5), options: .usesLineFragmentOrigin, attributes: TSSTInfoPageAttributes)
+		textImage.unlockFocus()
+		
+		return textImage
 	}
 	
-	/*
-	
-	- (NSImage *)textPage
-	{
-	NSData * textData;
-	if([self valueForKey: @"index"])
-	{
-	textData = [[self valueForKeyPath: @"group"] dataForPageIndex: [[self valueForKey: @"index"] integerValue]];
+	var pageImage: NSImage? {
+		if self.text?.boolValue ?? false {
+			return textPage
+		}
+		
+		var imageFromData: NSImage?
+		let imageData = pageData
+		
+		if let imageData = imageData {
+			setOwnSizeInfo(with: imageData)
+			imageFromData = NSImage(data: imageData)
+		}
+		
+		let imageSize = NSSize(width: self.width as? CGFloat ?? 0, height: self.height as? CGFloat ?? 0)
+		
+		if imageFromData == nil || imageSize == .zero {
+			imageFromData = nil
+		} else {
+			imageFromData!.cacheMode = .never
+			
+			imageFromData!.size = imageSize
+			imageFromData?.cacheMode = .bySize
+		}
+		
+		
+		return imageFromData
 	}
-	else
-	{
-	textData = [NSData dataWithContentsOfFile: [self valueForKey: @"imagePath"]];
-	}
-	
-	UniversalDetector * encodingDetector = [UniversalDetector detector];
-	[encodingDetector analyzeData: textData];
-	NSString * text = [[NSString alloc] initWithData: textData encoding: [encodingDetector encoding]];
-	//	int lineCount = 0;
-	NSRect lineRect;
-	NSRect pageRect = NSZeroRect;
-	
-	NSUInteger index = 0;
-	NSUInteger textLength = [text length];
-	NSRange lineRange;
-	NSString * singleLine;
-	while(index < textLength)
-	{
-	lineRange = [text lineRangeForRange: NSMakeRange(index, 0)];
-	index = NSMaxRange(lineRange);
-	singleLine = [text substringWithRange: lineRange];
-	lineRect = [singleLine boundingRectWithSize: NSMakeSize(800, 800) options: NSStringDrawingUsesLineFragmentOrigin attributes: TSSTInfoPageAttributes];
-	if(NSWidth(lineRect) > NSWidth(pageRect))
-	{
-	pageRect.size.width = lineRect.size.width;
-	}
-	
-	pageRect.size.height += (NSHeight(lineRect) - 19);
-	
-	}
-	pageRect.size.width += 10;
-	pageRect.size.height += 10;
-	pageRect.size.height = NSHeight(pageRect) < 500 ? 500 : NSHeight(pageRect);
-	
-	NSImage * textImage = [[NSImage alloc] initWithSize: pageRect.size];
-	
-	[textImage lockFocus];
-	[[NSColor whiteColor] set];
-	NSRectFill(pageRect);
-	[text drawWithRect: NSInsetRect( pageRect, 5, 5) options: NSStringDrawingUsesLineFragmentOrigin attributes: TSSTInfoPageAttributes];
-	[textImage unlockFocus];
-	
-	return textImage;
-	}
-
-	
-- (NSImage *)pageImage
-{
-if([[self valueForKey: @"text"] boolValue])
-{
-return [self textPage];
-}
-
-NSImage * imageFromData = nil;
-NSData * imageData = [self pageData];
-
-if(imageData)
-{
-[self setOwnSizeInfoWithData: imageData];
-imageFromData = [[NSImage alloc] initWithData: imageData];
-}
-
-NSSize imageSize =  NSMakeSize([[self valueForKey: @"width"] doubleValue], [[self valueForKey: @"height"] doubleValue]);
-
-if(!imageFromData || NSEqualSizes(NSZeroSize, imageSize))
-{
-imageFromData = nil;
-}
-else
-{
-[imageFromData setCacheMode: NSImageCacheNever];
-
-[imageFromData setSize: imageSize];
-[imageFromData setCacheMode: NSImageCacheBySize];
-}
-
-return imageFromData;
-}
-*/
 }

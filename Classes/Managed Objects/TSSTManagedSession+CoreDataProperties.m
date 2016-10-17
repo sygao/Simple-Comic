@@ -8,7 +8,7 @@
 
 #import "TSSTManagedSession+CoreDataProperties.h"
 #import "TSSTManagedGroup.h"
-#import "TSSTPage.h"
+#import "Simple_Comic-Swift.h"
 
 @implementation TSSTManagedSession (CoreDataProperties)
 

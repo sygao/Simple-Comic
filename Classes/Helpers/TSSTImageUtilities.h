@@ -31,9 +31,9 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-NSSize sizeScalaedToDimension(NSSize size, CGFloat dimension) NS_SWIFT_NAME(scaleSize(_:dimension:));
+NSSize sizeScalaedToDimension(NSSize size, CGFloat dimension) NS_SWIFT_NAME(scaleSize(_:toDimension:));
 
-NSSize sizeConstrainedByDimension(NSSize size, CGFloat dimension) NS_SWIFT_NAME(constrainSize(_:dimension:));
+NSSize sizeConstrainedByDimension(NSSize size, CGFloat dimension) NS_SWIFT_NAME(constrainSize(_:byDimension:));
 
 /// function that adjusts an \c NSSize by the amount designated
 /// in argument \c scale

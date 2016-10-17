@@ -12,9 +12,8 @@
 #import "SimpleComicAppDelegate.h"
 #import <XADMaster/XADArchive.h>
 #import <Quartz/Quartz.h>
+#import "Simple_Comic-Swift.h"
 #import "TSSTImageUtilities.h"
-#import "TSSTPage.h"
-#import "TSSTPage+CoreDataProperties.h"
 
 @interface TSSTManagedArchive () <XADArchiveDelegate>
 -(void)archiveNeedsPassword:(XADArchive *)archive;
