@@ -930,6 +930,7 @@ typedef struct {
 	
 	switch (charNumber)
 	{
+		case 119:
 		case NSUpArrowFunctionKey:
 			if(![self verticalScrollIsPossible])
 			{
@@ -942,6 +943,7 @@ typedef struct {
 				scrolling = YES;
 			}
 			break;
+		case 115:
 		case NSDownArrowFunctionKey:
 			if(![self verticalScrollIsPossible])
 			{
@@ -954,6 +956,7 @@ typedef struct {
 				scrolling = YES;
 			}
 			break;
+		case 97:
 		case NSLeftArrowFunctionKey:
 			if(![self horizontalScrollIsPossible])
 			{
@@ -966,6 +969,7 @@ typedef struct {
 				scrolling = YES;
 			}
 			break;
+		case 100:
 		case NSRightArrowFunctionKey:
 			if(![self horizontalScrollIsPossible])
 			{
